@@ -2,87 +2,66 @@ package UDP;
 
 import java.io.*;
 import java.net.*;
+import java.util.*;
 
 class Customer implements Serializable {
-    private static final long serialVersionUID = 20151107;
-    String id; String code; String name; String dayOfBirth; String userName;
+    private static final long serialVersionUID = 20151107L;
+    String id, code, name, dayOfBirth, userName;
     public Customer(String id, String code, String name, String dayOfBirth, String userName) {
         this.id = id; this.code = code; this.name = name; this.dayOfBirth = dayOfBirth; this.userName = userName;
     }
-    @Override
-    public String toString() {
-        return id + code +  name + dayOfBirth + userName;
-    }
 }
-
 public class UDPObject_HQYXe3ak {
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    public static void main(String[] args) throws Exception, ClassNotFoundException {
         DatagramSocket socket = new DatagramSocket();
-        InetAddress host = InetAddress.getByName("203.162.10.109"); 
-        int port = 2209;
+        InetAddress serverAddr = InetAddress.getByName("203.162.10.109"); int port = 2209;
         String studentCode = "B22DCVT034"; 
         String qCode = "HQYXe3ak";
-        String message = ";" + studentCode + ";" + qCode;
-        byte[] data = message.getBytes();
-        //a
-        DatagramPacket packet = new DatagramPacket(data, data.length, host, port);
-        socket.send(packet);
-        System.out.println("done a\n");
-        //b
-        byte[] buffer = new byte[4096];
-        DatagramPacket received = new DatagramPacket(buffer, buffer.length);
-        socket.receive(received);
-        System.out.println("Da nhan du lieu tu server.");
-        //c
-        byte[] requestIdBytes = new byte[8];
-        System.arraycopy(buffer, 0, requestIdBytes, 0, 8); 
-        ByteArrayInputStream bais = new ByteArrayInputStream(buffer, 8, received.getLength() - 8);
-        ObjectInputStream ois = new ObjectInputStream(bais);
+        // b1. Gửi thông điệp khởi tạo chứa mã sinh viên và mã câu hỏi
+        byte[] sendData = (";" + studentCode + ";" + qCode).getBytes();
+        socket.send(new DatagramPacket(sendData, sendData.length, serverAddr, port));
+
+        // b2. Nhận đối tượng Customer từ server
+        byte[] receiveBuffer = new byte[65535];
+        DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
+        socket.receive(receivePacket);
+        byte[] requestId = Arrays.copyOfRange(receivePacket.getData(), 0, 8);
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(receivePacket.getData(), 8, receivePacket.getLength() - 8));
         Customer customer = (Customer) ois.readObject();
-        String originalName = customer.name; 
-        //Thay doi thong tin
-        customer.name = formatName(customer.name);
-        customer.dayOfBirth = formatDate(customer.dayOfBirth);
-        customer.userName = createUsername(originalName);
-        System.out.println("Done thay doi");
-        //Sua doi doi tuong
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(customer);
-        oos.flush();
-        byte[] customerBytes = baos.toByteArray();
-        byte[] sendData = new byte[8 + customerBytes.length];
-        System.arraycopy(requestIdBytes, 0, sendData, 0, 8);
-        System.arraycopy(customerBytes, 0, sendData, 8, customerBytes.length);
-        DatagramPacket sendBack = new DatagramPacket(sendData, sendData.length, host, port);
-        socket.send(sendBack);
-        System.out.println("Done sua doi");
-        //d
-        socket.close();
-        System.out.println("done d\n Customer sent: " + customer);
-    }
-    
-    private static String formatName(String name) {
-        String[] parts = name.trim().toLowerCase().split("\\s+");
-        StringBuilder sb = new StringBuilder(parts[parts.length - 1].toUpperCase());
-        sb.append(", ");
-        for (int i = 0; i < parts.length - 1; i++) {
-            sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
-            if (i < parts.length - 2) sb.append(" ");
+        // b3. Chuẩn hóa thông tin của đối tượng Customer
+        String[] nameParts = customer.name.trim().toLowerCase().split("\\s+");
+        // a. Chuẩn hóa tên theo định dạng "HỌ, Tên"
+        if (nameParts.length > 0) {
+            String lastName = nameParts[nameParts.length - 1].toUpperCase();
+            StringJoiner firstName = new StringJoiner(" ");
+            for (int i = 0; i < nameParts.length - 1; i++) {
+                String part = nameParts[i];
+                firstName.add(Character.toUpperCase(part.charAt(0)) + part.substring(1));
+            }
+            customer.name = lastName + ", " + firstName.toString();
         }
-        return sb.toString();
-    }
-    
-    private static String formatDate(String dob) {
-        String[] parts = dob.split("-"); // [mm, dd, yyyy]
-        return parts[1] + "/" + parts[0] + "/" + parts[2];
-    }
-    
-    private static String createUsername(String name) {
-        String[] parts = name.trim().toLowerCase().split("\\s+");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length - 1; i++) sb.append(parts[i].charAt(0));
-        sb.append(parts[parts.length - 1]);
-        return sb.toString();
+        // c. Tạo tài khoản khách hàng
+        if (nameParts.length > 0) {
+            StringBuilder usernameBuilder = new StringBuilder();
+            for (int i = 0; i < nameParts.length - 1; i++) {
+                usernameBuilder.append(nameParts[i].charAt(0));
+            }
+            usernameBuilder.append(nameParts[nameParts.length - 1]);
+            customer.userName = usernameBuilder.toString();
+        }
+        // b. Chuẩn hóa ngày sinh từ mm-dd-yyyy -> dd/mm/yyyy
+        String[] dateParts = customer.dayOfBirth.split("-");
+        if (dateParts.length == 3) {
+            customer.dayOfBirth = dateParts[1] + "/" + dateParts[0] + "/" + dateParts[2];
+        }
+        // b4. Gửi lại đối tượng đã được chuẩn hóa về server
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        new ObjectOutputStream(baos).writeObject(customer);
+        byte[] customerData = baos.toByteArray();
+        byte[] finalSendData = new byte[8 + customerData.length];
+        System.arraycopy(requestId, 0, finalSendData, 0, 8);
+        System.arraycopy(customerData, 0, finalSendData, 8, customerData.length);
+        socket.send(new DatagramPacket(finalSendData, finalSendData.length, serverAddr, port));
+        System.out.println("Client đã hoàn thành và đóng kết nối.");
     }
 }
