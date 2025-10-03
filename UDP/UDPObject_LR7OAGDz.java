@@ -1,80 +1,62 @@
-//chưa xong
 package UDP;
-
+import java.util.*;
 import java.io.*;
 import java.net.*;
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 
-// Lớp Student
-class Student implements Serializable {
+/**
+ *
+ * @author Admin
+ */
+//a
+class Student implements Serializable{
     private static final long serialVersionUID = 20171107;
     String id, code, name, email;
-    public Student(String id, String code, String name, String email) {
-        this.id = id; this.code = code; this.name = name; this.email = email;
-    }
-    public Student(String code) { this.code = code; }
-    @Override
-    public String toString() {
-        return id + " - " + code + " - " + name + " - " + email;
+    public Student(String id, String code, String name, String email){
+        this.id = id; this.code = code; this.name = name; this. email = email;
     }
 }
 
 public class UDPObject_LR7OAGDz {
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         DatagramSocket socket = new DatagramSocket();
-        InetAddress host = InetAddress.getByName("203.162.10.109");
-        int port = 2209;
-        // a
+        InetAddress host = InetAddress.getByName("203.162.10.109"); int port = 2209;
         String studentCode = "B22DCVT034";
         String qCode = "LR7OAGDz";
-        String message = ";" + studentCode + ";" + qCode;
-        byte[] data = message.getBytes();
-        DatagramPacket packet = new DatagramPacket(data, data.length, host, port);
-        socket.send(packet);
-        System.out.println("done a\n");
-        // b
-        byte[] buffer = new byte[4096];
-        DatagramPacket received = new DatagramPacket(buffer, buffer.length);
+        //a
+        byte[] sendData = (";" + studentCode + ";" + qCode).getBytes();
+        socket.send(new DatagramPacket(sendData, sendData.length, host ,port));
+        //b
+        byte[] buffer = new byte[65535];
+        DatagramPacket received = new DatagramPacket(buffer,buffer.length);
         socket.receive(received);
-        System.out.println("done b\n");
-        // c
-        byte[] requestIdBytes = new byte[8];
-        System.arraycopy(buffer, 0, requestIdBytes, 0, 8);
-        ByteArrayInputStream bais = new ByteArrayInputStream(buffer, 8, received.getLength() - 8);
-        ObjectInputStream ois = new ObjectInputStream(bais);
+        byte[] requestId = Arrays.copyOfRange(received.getData(), 0, 8);
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(received.getData(), 8, received.getLength() - 8));
         Student st = (Student) ois.readObject();
-        st.name = normalizeName(st.name);
-        st.email = createEmail(st.name);
-        System.out.println("done c\n");
-        // d
+        //c
+        //chuan hoa ten theo quy tac
+        String[] parts = st.name.trim().toLowerCase().split("\\s+");
+        StringBuilder namesb = new StringBuilder();
+        for (String part : parts) {namesb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1)).append(" ");}
+        st.name = namesb.toString().trim();
+        //tao email
+        String[] emailparts = st.name.toLowerCase().split("\\s+");
+        String lastName = emailparts[emailparts.length - 1];
+        StringBuilder createEmail = new StringBuilder(lastName);
+        for (int i = 0; i < emailparts.length - 1; i++) {createEmail.append(emailparts[i].charAt(0));}
+        st.email = createEmail.toString() + "@ptit.edu.vn";
+        //gui lai server
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(st); oos.flush();
-        byte[] studentBytes = baos.toByteArray();
-        byte[] sendData = new byte[8 + studentBytes.length];
-        System.arraycopy(requestIdBytes, 0, sendData, 0, 8);
-        System.arraycopy(studentBytes, 0, sendData, 8, studentBytes.length);
-        DatagramPacket sendBack = new DatagramPacket(sendData, sendData.length, host, port);
-        socket.send(sendBack);
-        System.out.println("done d\n");
-        socket.close();
-        System.out.println("Client finished. Student sent: " + st);
-    }
-
-    private static String normalizeName(String s) {
-        String[] parts = s.trim().toLowerCase().split("\\s+");
-        StringBuilder sb = new StringBuilder();
-        for (String p : parts) {
-            sb.append(Character.toUpperCase(p.charAt(0)))
-              .append(p.substring(1)).append(" ");
-        }
-        return sb.toString().trim();
-    }
-
-    private static String createEmail(String name) {
-        String[] parts = name.toLowerCase().split("\\s+");
-        String lastName = parts[parts.length - 1];
-        StringBuilder prefix = new StringBuilder(lastName);
-        for (int i = 0; i < parts.length - 1; i++) prefix.append(parts[i].charAt(0));
-        return prefix.toString() + "@ptit.edu.vn";
+        new ObjectOutputStream(baos).writeObject(st);
+        byte[] studentData = baos.toByteArray();
+        byte[] finalSendData = new byte[8 + studentData.length];
+        System.arraycopy(requestId, 0, finalSendData, 0, 8);
+        System.arraycopy(studentData, 0, finalSendData, 8, studentData.length);
+        socket.send(new DatagramPacket(finalSendData, finalSendData.length, host, port));
+        //d
+        System.out.println(" client done and close!");
     }
 }

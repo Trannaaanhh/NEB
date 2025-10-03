@@ -12,64 +12,52 @@ import java.net.*;
  * @author Admin
  */
 //a
-class Customer implements Serializable{
-    private static final long serialVersionUID = 20151107;
-    String id, code, name, dayOfBirth, userName;
-    public Customer(String id, String code, String name, String dayOfBirth, String userName){
-        this.id = id; this.code = code; this.name = name; this.dayOfBirth = dayOfBirth; this.userName = userName;
+class Employee implements Serializable{
+    private static final long serialVersionUID = 20261107L;
+    String id, name, hireDate; double salary;
+    public Employee(String id, String name, Double salary, String hireDate){
+        this.id = id; this.name = name; this.salary = salary; this.hireDate = hireDate;
     }
 }
 
 public class UDP1 {
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    public static void main(String[] args)throws IOException, ClassNotFoundException {
         DatagramSocket socket = new DatagramSocket();
         InetAddress host = InetAddress.getByName("203.162.10.109"); int port = 2209;
         String studentCode = "B22DCVT034";
-        String qCode = "HQYXe3ak";
+        String qCode = "tC0O2pto";
+        //a
+        byte[] sendData = (";" + studentCode + ";" + qCode).getBytes();
+        socket.send(new DatagramPacket(sendData, sendData.length, host, port));
         //b
-        //gui chuoi
-        byte[] data = (";" + studentCode + ";" + qCode).getBytes();
-        socket.send(new DatagramPacket(data, data.length, host, port));
-        //nhan doi tuong
         byte[] buffer = new byte[65535];
         DatagramPacket received = new DatagramPacket(buffer,buffer.length);
         socket.receive(received);
         byte[] requestId = Arrays.copyOfRange(received.getData(), 0, 8);
-        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(received.getData(), 8, received.getLength()-8));
-        Customer customer = (Customer) ois.readObject();
-        //sua ten khach hang
-        String[] parts = customer.name.trim().toLowerCase().split("\\s+");
-        if (parts.length > 0){
-            String lastName = parts[parts.length - 1].toUpperCase();
-            StringJoiner firstName = new StringJoiner(" ");
-            for (int i = 0; i < parts.length - 1; i++) {
-                String part = parts[i];
-                firstName.add(Character.toUpperCase(part.charAt(0)) + part.substring(1));                
-            }
-            customer.name = lastName + ", " + firstName.toString();
-        }
-        //chuan hoa ngay sinh
-        String[] dateparts = customer.dayOfBirth.split("-");
-        if (dateparts.length == 3){
-            customer.dayOfBirth = dateparts[1] + "/" + dateparts[0] + "/" + dateparts[2];
-        }
-        //tao tai khoan cho khach
-        if(parts.length > 0){
-            StringBuilder usernameBuilder = new StringBuilder();
-            for (int i = 0; i < parts.length - 1; i++) {
-                usernameBuilder.append(parts[i].charAt(0));
-            }
-            usernameBuilder.append(parts[parts.length - 1]);
-            customer.userName = usernameBuilder.toString();
-        }
-        //gui du lieu len server
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(received.getData(), 8, received.getLength() - 8));
+        Employee ep = (Employee) ois.readObject();
+        //c
+        //chuan hoa ten
+        String[] parts = ep.name.trim().toLowerCase().split("\\s+");
+        StringBuilder normalizedName = new StringBuilder();
+        for (String p : parts) { normalizedName.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1)).append(" ");}
+        ep.name = normalizedName.toString().trim();
+        //tang luong
+        int sum = 0;
+        for(char c : ep.hireDate.substring(0,4).toCharArray()) {sum += Character.getNumericValue(c);}
+        ep.salary *= ( 1 + sum/100.0);
+        //chuan hoa ngay
+        String[] dateparts = ep.hireDate.split("-");
+        ep.hireDate = dateparts[2] + "/" + dateparts[1] + "/" + dateparts[0];
+        //gui lai server
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        new ObjectOutputStream(baos).writeObject(customer);
-        byte[] customerData = baos.toByteArray();
-        byte[] finalSendData = new byte[8 + customerData.length];
+        new ObjectOutputStream(baos).writeObject(ep);
+        byte[] empData = baos.toByteArray();
+        byte[] finalSendData = new byte[8 + empData.length];
         System.arraycopy(requestId, 0, finalSendData, 0, 8);
-        System.arraycopy(customerData, 0, finalSendData, 8, customerData.length);
+        System.arraycopy(empData, 0, finalSendData, 8, empData.length);
         socket.send(new DatagramPacket(finalSendData, finalSendData.length, host, port));
-        System.out.println("Client hoan tanh va dong!");
+        //d
+        System.out.println("Client done and close!");
     }
 }
