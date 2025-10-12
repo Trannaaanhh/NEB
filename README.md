@@ -7,7 +7,7 @@ Muốn run và chạy được lên sv 203.162.10.109 thì phải run  nút clea
 sau đó ở mục này 
 <img width="276" height="103" alt="image" src="https://github.com/user-attachments/assets/4ed37ebf-2d53-4961-b92f-de01a8b63ba9" />
 
-có các cái web service lấy từ để bài của thầy ví dụ như 
+có các cái web service fetch được(các bước fetch chắc ae tự tìm hiểu) từ để bài của thầy ví dụ như 
 
 <img width="1530" height="97" alt="image" src="https://github.com/user-attachments/assets/245157d9-5ce2-4186-826a-c8766a23a948" />
 
