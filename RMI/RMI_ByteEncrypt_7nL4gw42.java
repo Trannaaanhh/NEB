@@ -14,7 +14,7 @@ public class RMI_ByteEncrypt_7nL4gw42 {
     public static void main(String[] args) throws Exception {
         // Khai báo thông tin
         String studentCode = "B22DCVT034"; 
-        String qCode = "7nL4gw42";
+        String qCode = "PMAPUXLF";
         
         // a. Kết nối, tìm và gọi phương thức requestData
         ByteService byteService = (ByteService) LocateRegistry.getRegistry("203.162.10.109", 1099).lookup("RMIByteService");
