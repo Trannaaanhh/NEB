@@ -3,7 +3,6 @@ import java.io.*;
 import java.net.*;
 
 public class TCPClient_CharCount {
-
     public static void main(String[] args) throws Exception {
         String sv = "B22DCVT034", qCode = "4g6DiEih";
         String serverIP = "203.162.10.109";
