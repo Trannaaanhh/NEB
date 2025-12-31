@@ -1,28 +1,28 @@
 package TCP;
-import java.io.*;
+//import java.util.*;
 import java.net.*;
+import java.io.*;
 
 public class TCPClient_SumStream {
-    public static void main(String[] args) throws Exception {
-        String sv = "B22DCVT034", Qcode = "uL4G2gj5";
-        try (Socket s = new Socket("203.162.10.109", 2206)) {
+    public static void main(String[] args)throws Exception {
+        String sv = "B22DCVT034", qCode = "uL4G2gj5", ip = "203.162.10.109"; int port = 2206;
+        try(Socket s = new Socket()) {
+            s.connect(new InetSocketAddress(ip, port), 5000);
             s.setSoTimeout(5000);
             InputStream is = s.getInputStream();
             OutputStream os = s.getOutputStream();
-            //a gui ma sinh vien va ma cau hoi
-            os.write((sv + ";" + Qcode).getBytes());
+            
+            os.write((sv + ";" + qCode).getBytes());
             os.flush();
-            //b nhan mot chuoi so nguyen tu server duoc phan tach voi nhau bang "|"
+            
             byte[] buf = new byte[1024];
             int len = is.read(buf);
-            String str = new String(buf, 0, len).trim();
-            System.out.println("receive: " + str);
-            //c tinh tong cac chuoi so nguyen va gui len sv
+            String rcv = new String(buf, 0, len).trim();
+            
             int sum = 0;
-            for (String val : str.split("\\|")) sum += Integer.parseInt(val);
+            for(String val : rcv.split("\\|")) sum += Integer.parseInt(val);
             os.write(String.valueOf(sum).getBytes());
             os.flush();
-            System.out.println("sent: " + sum);
         }
     }
 }
